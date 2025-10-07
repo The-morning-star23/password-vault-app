@@ -14,7 +14,7 @@ type DecryptedItem = {
   notes?: string;
 };
 
-// Edit Modal (No changes needed, but included for completeness)
+// Edit Modal
 const EditModal = ({ item, masterPassword, onClose, onSave }: { item: any, masterPassword: string, onClose: () => void, onSave: (updatedData: any) => Promise<void> }) => {
   const [decryptedData, setDecryptedData] = useState<DecryptedItem | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -78,7 +78,6 @@ export default function VaultList() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [currentItem, setCurrentItem] = useState<any | null>(null);
 
-  // --- NEW STATES FOR SEARCH ---
   const [decryptedCache, setDecryptedCache] = useState<DecryptedItem[]>([]);
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -97,10 +96,24 @@ export default function VaultList() {
     fetchItems();
   }, [fetchItems]);
 
-  const handleDecryptAndUnlock = () => {
-    if (!masterPassword || items.length === 0) {
-        alert("Please enter master password");
-        return;
+  const handleDecryptSingleItem = useCallback((itemToDecrypt: any, pass: string) => {
+    try {
+      const decryptedTitle = CryptoJS.AES.decrypt(itemToDecrypt.title, pass).toString(CryptoJS.enc.Utf8);
+      if (!decryptedTitle) throw new Error("Invalid password");
+      const decryptedUsername = CryptoJS.AES.decrypt(itemToDecrypt.username, pass).toString(CryptoJS.enc.Utf8);
+      const decryptedBlob = CryptoJS.AES.decrypt(itemToDecrypt.encryptedData, pass).toString(CryptoJS.enc.Utf8);
+      const blobData = JSON.parse(decryptedBlob);
+      setDecryptedItem({ id: itemToDecrypt._id, title: decryptedTitle, username: decryptedUsername, ...blobData });
+    } catch {
+      alert("Decryption failed. Check master password.");
+      setViewModalOpen(false);
+    }
+  }, []);
+
+  const handleDecryptAndUnlock = useCallback(() => {
+    if (!masterPassword || !currentItem) {
+      alert("Please enter master password");
+      return;
     }
     try {
       const tempDecryptedCache: DecryptedItem[] = [];
@@ -112,40 +125,24 @@ export default function VaultList() {
       }
       setDecryptedCache(tempDecryptedCache);
       setIsUnlocked(true);
-      if (currentItem) {
-        handleView(currentItem); // Re-open view modal for the selected item
-      }
-    } catch {
+      handleDecryptSingleItem(currentItem, masterPassword);
+    } catch { // THIS IS THE FIX: Removed the unused 'error' variable
       alert("Decryption failed. Check master password.");
+      setViewModalOpen(false);
     }
-  };
+  }, [masterPassword, currentItem, items, handleDecryptSingleItem]);
 
   const handleView = (item: any) => {
     setCurrentItem(item);
     setDecryptedItem(null);
     setViewModalOpen(true);
     if (!isUnlocked) {
-      setMasterPassword(''); // Prompt for password if vault is locked
+      setMasterPassword('');
     } else {
-        // If already unlocked, decrypt and show immediately
-        handleDecryptSingleItem(item, masterPassword);
+      handleDecryptSingleItem(item, masterPassword);
     }
   };
 
-  const handleDecryptSingleItem = (itemToDecrypt: any, pass: string) => {
-    try {
-        const decryptedTitle = CryptoJS.AES.decrypt(itemToDecrypt.title, pass).toString(CryptoJS.enc.Utf8);
-        if (!decryptedTitle) throw new Error("Invalid password");
-        const decryptedUsername = CryptoJS.AES.decrypt(itemToDecrypt.username, pass).toString(CryptoJS.enc.Utf8);
-        const decryptedBlob = CryptoJS.AES.decrypt(itemToDecrypt.encryptedData, pass).toString(CryptoJS.enc.Utf8);
-        const blobData = JSON.parse(decryptedBlob);
-        setDecryptedItem({ id: itemToDecrypt._id, title: decryptedTitle, username: decryptedUsername, ...blobData });
-    } catch {
-        alert("Decryption failed. Check master password.");
-    }
-  };
-
-  // Filter logic using useMemo for performance
   const filteredItems = useMemo(() => {
     if (!searchTerm) return decryptedCache;
     return decryptedCache.filter(item => 
@@ -154,32 +151,34 @@ export default function VaultList() {
     );
   }, [searchTerm, decryptedCache]);
 
-
   const handleEdit = (item: any) => {
     const pass = window.prompt("Please enter your master password to edit this item.");
     if (pass) { setMasterPassword(pass); setCurrentItem(item); setEditModalOpen(true); }
   };
+
   const handleDelete = async (itemId: string) => {
     if (window.confirm("Are you sure?")) {
       try {
         const response = await fetch(`/api/vault/${itemId}`, { method: 'DELETE' });
         if (!response.ok) throw new Error("Failed to delete.");
-        fetchItems(); // Refetch items after deleting
+        fetchItems();
         alert("Item deleted.");
       } catch (error) { alert((error as Error).message); }
     }
   };
+
   const handleSaveUpdate = async (updatedData: any) => {
     try {
       const response = await fetch(`/api/vault/${currentItem._id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updatedData) });
       if (!response.ok) throw new Error("Failed to update.");
       setEditModalOpen(false);
       await fetchItems();
-      setIsUnlocked(false); // Relock vault after an edit for security
+      setIsUnlocked(false);
       setDecryptedCache([]);
       alert("Item updated successfully!");
     } catch (error) { alert((error as Error).message); }
   };
+
   const copyToClipboard = (text: string | undefined) => {
     if (text) navigator.clipboard.writeText(text).then(() => alert('Password copied!'));
   };
@@ -208,7 +207,6 @@ export default function VaultList() {
         {items.length === 0 ? (<p>Your vault is empty.</p>) : (
           <div className="space-y-3">
             {!isUnlocked ? (
-              // Locked view
               items.map((item) => (
                 <div key={item._id} className="flex items-center justify-between p-4 bg-gray-700 rounded-md">
                   <p className="font-bold">Encrypted Entry</p>
@@ -216,7 +214,6 @@ export default function VaultList() {
                 </div>
               ))
             ) : (
-              // Unlocked and filtered view
               filteredItems.map((item) => (
                 <div key={item.id} className="flex items-center justify-between p-4 bg-gray-700 rounded-md">
                   <div>
@@ -242,7 +239,7 @@ export default function VaultList() {
             {!isUnlocked ? (
                 <>
                   <h3 className="mb-4 text-xl font-bold">Unlock Vault</h3>
-                  <p className="mb-4 text-sm text-gray-400">Enter your master password to unlock and search your vault. This is done securely in your browser.</p>
+                  <p className="mb-4 text-sm text-gray-400">Enter your master password to unlock and search your vault.</p>
                   <input type="password" value={masterPassword} onChange={(e) => setMasterPassword(e.target.value)} className="w-full px-3 py-2 mb-4 text-white bg-gray-700 rounded-md" placeholder="Your Master Password" />
                   <div className="flex justify-end space-x-2">
                     <button onClick={() => setViewModalOpen(false)} className="px-4 py-2 text-gray-300 bg-gray-600 rounded-md">Cancel</button>
@@ -250,7 +247,7 @@ export default function VaultList() {
                   </div>
                 </>
               ) : !decryptedItem ? (
-                  <div>Loading details...</div>
+                  <div className="text-center">Loading details...</div>
               ) : (
                 <>
                   <h3 className="mb-2 text-xl font-bold">{decryptedItem.title}</h3>
