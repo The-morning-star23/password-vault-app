@@ -2,7 +2,7 @@
 
 A simple, fast, and privacy-first password manager built with the Next.js, MongoDB, and Tailwind CSS. All vault data is encrypted/decrypted on the client-side, meaning the server never sees your plaintext passwords.
 
-**Live Demo URL:** [Link will be here after deployment]
+**Live Demo URL:** [https://password-vault-app-zeta.vercel.app]
 
 ---
 
