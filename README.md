@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🔒 Password Generator + Secure Vault
 
-## Getting Started
+A simple, fast, and privacy-first password manager built with the Next.js, MongoDB, and Tailwind CSS. All vault data is encrypted/decrypted on the client-side, meaning the server never sees your plaintext passwords.
 
-First, run the development server:
+**Live Demo URL:** [Link will be here after deployment]
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+---
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Core Features
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Strong Password Generation:** Customizable length and character sets (uppercase, numbers, symbols).
+- **Secure Vault:** Save credentials with a title, username, password, URL, and notes.
+- **Client-Side Encryption:** All vault items are encrypted in the browser using AES before being sent to the server. The server only ever stores encrypted blobs.
+- **Simple Authentication:** Secure user sign-up and login (email/password).
+- **Protected Routes:** The user dashboard is protected and accessible only to authenticated users.
+- **Copy to Clipboard:** Easily copy passwords, which automatically clears from the clipboard after a short period (a browser feature).
+- **Minimalist UI:** A clean and fast interface built with Tailwind CSS.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## Tech Stack
 
-To learn more about Next.js, take a look at the following resources:
+- **Framework:** Next.js (App Router)
+- **Language:** TypeScript
+- **Database:** MongoDB Atlas
+- **Styling:** Tailwind CSS
+- **Authentication:** JWT (JSON Web Tokens) with Cookies
+- **Client-Side Encryption:** `crypto-js` (AES)
+- **Deployment:** Vercel
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Running the Project Locally
 
-## Deploy on Vercel
+To get a local copy up and running, follow these simple steps.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Prerequisites
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Node.js (v18 or later)
+- A free MongoDB Atlas account
+
+### Installation
+
+1.  **Clone the repository:**
+    ```sh
+    git clone [https://github.com/The-morning-star23/password-vault-app.git](https://github.com/The-morning-star23/password-vault-app.git)
+    cd password-vault-app
+    ```
+
+2.  **Install NPM packages:**
+    ```sh
+    npm install
+    ```
+
+3.  **Set up environment variables:**
+    Create a file named `.env.local` in the root of the project and add the following variables.
+    ```env
+    MONGODB_URI="your_mongodb_connection_string"
+    JWT_SECRET="your_super_secret_random_string_for_jwt"
+    ```
+
+4.  **Run the development server:**
+    ```sh
+    npm run dev
+    ```
+    Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+---
+
+## Note on Cryptography
+
+For this project, I used the **`crypto-js`** library to perform client-side **AES (Advanced Encryption Standard)** encryption. The user's master password serves as the secret key for encryption and decryption. This approach ensures maximum privacy, as unencrypted, sensitive data **never leaves the user's browser** and is never stored on the server or in logs.
